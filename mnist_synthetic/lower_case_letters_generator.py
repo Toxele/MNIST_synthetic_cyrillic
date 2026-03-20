@@ -19,14 +19,11 @@ class BaseGenerator(ABC):
 
 
 class LowerCaseLettersGenerator(BaseGenerator):
+
     ALLOWS_SYMBOLS: ClassVar[tuple[str, ...]] = ('а', 'б', 'в', 'г', 'д', 'е', 'ё', 'ж', 'з',
                                                  'и', 'й', 'к', 'л', 'м', 'н', 'о', 'п', 'р',
-                                                 'с', 'т', 'у', 'ф', 'ш')
-
-    # ALLOWS_SYMBOLS: ClassVar[tuple[str, ...]] = ('а', 'б', 'в', 'г', 'д', 'е', 'ё', 'ж', 'з',
-    #                                             'и', 'й', 'к', 'л', 'м', 'н', 'о', 'п', 'р',
-    #                                             'с', 'т', 'у', 'ф', 'х', 'ц', 'ч', 'ш', 'щ',
-    #                                             'ъ', 'ы', 'ь', 'э', 'ю', 'я')
+                                                 'с', 'т', 'у', 'ф', 'х', 'ц', 'ч', 'ш', 'щ',
+                                                 'ъ', 'ы', 'ь', 'э', 'ю', 'я')
 
     def __init__(self, seed: int | None = None, config: GeneratorConfig | None = None) -> None:
         self.config = config or GeneratorConfig()
@@ -520,52 +517,52 @@ class LowerCaseLettersGenerator(BaseGenerator):
 
         return img
 
-    # надо править
     def generate_з(self) -> NDArray[np.uint8]:
         img = self._init_image()
 
-        # 1. Построение "Овала" для буквы
-        center_x = int(self.draw.seed_rng.uniform(0.40, 0.50) * self.config.width)
-        center_y = int(self.draw.seed_rng.uniform(0.25, 0.35) * self.config.height)
+        tilt = int(self.draw.seed_rng.uniform(5, 12))
 
-        width = int(self.draw.seed_rng.uniform(0.11, 0.15) * self.config.width)
-        height = int(self.draw.seed_rng.uniform(0.16, 0.20) * self.config.height)
-        angle = int(self.draw.seed_rng.uniform(25, 40))
+        # 1. Верхняя дуга (строго верхняя половина цифры 3)
+        rx1 = int(self.draw.seed_rng.uniform(0.12, 0.16) * self.config.width)
+        ry1 = int(self.draw.seed_rng.uniform(0.14, 0.18) * self.config.height)
 
-        # 2. Построение наклонной палки справа
-        ellipse_top_y = center_y - height // 2
-        ellipse_bottom_y = center_y + height // 2
-        ellipse_right_x = center_x + width // 2
+        cx1 = int(self.draw.seed_rng.uniform(0.40, 0.50) * self.config.width)
+        cy1 = int(self.draw.seed_rng.uniform(0.25, 0.35) * self.config.height)
 
-        # Верхняя часть
-        stick_top_y = ellipse_top_y + int(self.draw.seed_rng.uniform(3, 5))
-        stick_top_x = ellipse_right_x + int(self.draw.seed_rng.uniform(1, 3))
-
-        # Нижняя
-        stick_bottom_y = ellipse_bottom_y + int(self.draw.seed_rng.uniform(4, 7))
-        stick_bottom_x = ellipse_right_x - int(self.draw.seed_rng.uniform(2, 4))
-
-        self.draw.draw_line(
-            img,
-            left_location=IntLocation(stick_top_x),
-            top_location=IntLocation(stick_top_y),
-            right_location=IntLocation(stick_bottom_x),
-            bottom_location=IntLocation(stick_bottom_y),
+        self.draw.draw_ellipse(
+            img, center_x_location=IntLocation(cx1), center_y_range=IntLocation(cy1),
+            width_location=IntLocation(rx1), height_location=IntLocation(ry1),
+            angle_location=IntLocation(tilt), start_angle_location=IntLocation(-150),
+            end_angle_location=IntLocation(110)
         )
 
-        # 3. Закругление
+        # 2. Нижняя петля (короткая, компактная)
+        rx2 = int(self.draw.seed_rng.uniform(0.14, 0.18) * self.config.width)
+        ry2 = int(self.draw.seed_rng.uniform(0.20, 0.25) * self.config.height)  # Сделали высоту меньше
 
-        ellipse_center_x_location = stick_bottom_x - int(self.draw.seed_rng.uniform(3, 5))
-        ellipse_center_y_location = stick_bottom_y + int(self.draw.seed_rng.uniform(3, 5))
+        # Центр нижней петли смещен влево и вниз от центра верхней
+        cx2 = cx1 - int(rx1 * 0.5)
+        cy2 = cy1 + ry1 + int(self.draw.seed_rng.uniform(2, 5))
+
+        # 3. Рисуем нижнюю "тройку", переходящую в петлю "у"
+        # Стартует от центра (270 - верх), идет вправо (0), вниз (90) и закручивается влево-вверх (210)
         self.draw.draw_ellipse(
-            img,
-            center_x_location=IntLocation(ellipse_center_x_location),
-            center_y_range=IntLocation(ellipse_center_y_location),
-            width_location=IntLocation(int(width * 0.9)),
-            height_location=IntLocation(int(height * 0.9)),
-            angle_location=IntLocation(angle),
-            start_angle_location=IntLocation(0),
-            end_angle_location=IntLocation(360),
+            img, center_x_location=IntLocation(cx2), center_y_range=IntLocation(cy2),
+            width_location=IntLocation(rx2), height_location=IntLocation(ry2),
+            angle_location=IntLocation(tilt), start_angle_location=IntLocation(-90), end_angle_location=IntLocation(210)
+        )
+
+        # 4. Диагональный перекрестный хвостик
+        # Идет от левого края нижней петли наверх вправо
+        cross_start_x = cx2 - rx2
+        cross_start_y = cy2 + int(ry2 * 0.5)
+
+        cross_end_x = cx2 + int(rx2 * 0.5)
+        cross_end_y = cy2 - int(ry2 * 0.3)
+
+        self.draw.draw_line(
+            img, left_location=IntLocation(cross_start_x), top_location=IntLocation(cross_start_y),
+            right_location=IntLocation(cross_end_x), bottom_location=IntLocation(cross_end_y)
         )
 
         return img
@@ -608,7 +605,7 @@ class LowerCaseLettersGenerator(BaseGenerator):
             end_angle_location=IntLocation(end_angle_1),
         )
 
-        # 2. Правая половина "и" (с КОРОТКИМ хвостиком)
+        # 2. Правая половина "и" (с коротким хвостиком)
         # Задаем tail_angle = 15-35 градусов, чтобы линия оборвалась в самом низу
         # (чуть правее нижней точки), образуя аккуратный маленький хвостик.
         # end_angle: около 200 (левая стенка второго эллипса сливается с правой стенкой первого)
@@ -624,59 +621,6 @@ class LowerCaseLettersGenerator(BaseGenerator):
             angle_location=IntLocation(angle),
             start_angle_location=IntLocation(tail_angle),
             end_angle_location=IntLocation(end_angle_2),
-        )
-
-        return img
-
-    # in progress
-    def generate_ш(self) -> NDArray[np.uint8]:
-        img = self._init_image()
-
-        # Радиусы (ширина и высота "петелек" буквы)
-        rx = int(self.draw.seed_rng.uniform(0.12, 0.16) * self.config.width)  # ~3-4 пикселя
-        ry = int(self.draw.seed_rng.uniform(0.28, 0.35) * self.config.height)  # ~8-10 пикселей
-
-        # Высота расположения (центр эллипсов)
-        cy = int(self.draw.seed_rng.uniform(0.40, 0.50) * self.config.height)
-
-        # Центр левой петли
-        cx1 = int(self.draw.seed_rng.uniform(0.25, 0.32) * self.config.width)
-
-        # Центр правой петли.
-        # Сдвигаем вправо ~на 1.85 радиуса X.
-        # Это гарантирует, что правая стенка первого эллипса наложится на левую стенку второго.
-        offset = int(rx * 1.85) + int(self.draw.seed_rng.uniform(-1, 1))
-        cx2 = cx1 + offset
-
-        # Общий наклон буквы (курсив)
-        angle = int(self.draw.seed_rng.uniform(5, 15))
-
-        # 1. Левая половина "ш" (первая ямка)
-        # start_angle = -30: правая ветвь эллипса (поднимается вверх для соединения)
-        # end_angle = 220: левая ветвь (заходит немного за вертикаль, создавая "крючок")
-        self.draw.draw_ellipse(
-            img,
-            center_x_location=IntLocation(cx1),
-            center_y_range=IntLocation(cy),
-            width_location=IntLocation(rx),
-            height_location=IntLocation(ry),
-            angle_location=IntLocation(angle),
-            start_angle_location=IntLocation(-30),
-            end_angle_location=IntLocation(220),
-        )
-
-        # 2. Правая половина "ш" (вторая ямка с хвостиком)
-        # start_angle = -60: правая ветвь обрывается выше, формируя хвостик
-        # end_angle = 210: левая ветвь перекрывается с первым эллипсом, формируя центральный столбик буквы
-        self.draw.draw_ellipse(
-            img,
-            center_x_location=IntLocation(cx2),
-            center_y_range=IntLocation(cy),
-            width_location=IntLocation(rx),
-            height_location=IntLocation(ry),
-            angle_location=IntLocation(angle),
-            start_angle_location=IntLocation(-60),
-            end_angle_location=IntLocation(210),
         )
 
         return img
@@ -998,14 +942,11 @@ class LowerCaseLettersGenerator(BaseGenerator):
         left_x = int(self.draw.seed_rng.uniform(0.25, 0.35) * self.config.width)
         right_x = left_x + width
 
-        # Арка вписывается между левой и правой ножкой
         arch_rx = width // 2
         arch_ry = int(self.draw.seed_rng.uniform(5, 8))
 
-        # Центр арки по Y рассчитывается так, чтобы её вершина была ровно на уровне top_y
         arch_cy = top_y + arch_ry
 
-        # 1. Левая ножка ("крепкая", прямая).
         self.draw.draw_line(
             img,
             left_location=IntLocation(left_x),
@@ -1014,7 +955,6 @@ class LowerCaseLettersGenerator(BaseGenerator):
             bottom_location=IntLocation(bot_y),
         )
 
-        # 2. Арка (строго от левой ножки до правой)
         self.draw.draw_ellipse(
             img,
             center_x_location=IntLocation(left_x + arch_rx),
@@ -1022,11 +962,10 @@ class LowerCaseLettersGenerator(BaseGenerator):
             width_location=IntLocation(arch_rx),
             height_location=IntLocation(arch_ry),
             angle_location=IntLocation(0),
-            start_angle_location=IntLocation(180),  # Точно левая стенка
-            end_angle_location=IntLocation(360),  # Точно правая стенка (верхняя дуга)
+            start_angle_location=IntLocation(180),
+            end_angle_location=IntLocation(360),
         )
 
-        # 3. Правая ножка (начинается точно от арки и идет вниз)
         self.draw.draw_line(
             img,
             left_location=IntLocation(right_x),
@@ -1035,7 +974,6 @@ class LowerCaseLettersGenerator(BaseGenerator):
             bottom_location=IntLocation(bot_y),
         )
 
-        # 4. хвостик
         tail_r = int(self.draw.seed_rng.uniform(2, 4))
         self.draw.draw_ellipse(
             img,
@@ -1053,45 +991,85 @@ class LowerCaseLettersGenerator(BaseGenerator):
     def generate_р(self) -> NDArray[np.uint8]:
         img = self._init_image()
 
-        row_start, row_end = int(self.config.height * 0.2), int(self.config.height * 0.9)
-        col_pos = int(self.config.width * 0.3)
+        top_y = int(self.draw.seed_rng.uniform(0.20, 0.30) * self.config.height)
+        bot_y = int(self.draw.seed_rng.uniform(0.85, 0.95) * self.config.height)
+        left_x = int(self.draw.seed_rng.uniform(0.35, 0.45) * self.config.width)
+        tilt = int(self.draw.seed_rng.uniform(3, 6))
 
-        # 1. Вертикальная "мачта"
-        self.draw.draw_line(img, IntLocation(row_start), IntLocation(col_pos), IntLocation(row_end),
-                            IntLocation(col_pos))
+        self.draw.draw_line(
+            img, left_location=IntLocation(left_x), top_location=IntLocation(top_y),
+            right_location=IntLocation(left_x - tilt), bottom_location=IntLocation(bot_y)
+        )
 
-        # 2. Шляпка - "п"-образный изгиб
-        # Рисуем горизонтальную линию вверху и вторую вертикаль короче
-        row_mid = row_start + int(self.config.height * 0.25)
-        col_end = col_pos + int(self.config.width * 0.3)
+        arch_start_y = top_y + int(self.draw.seed_rng.uniform(2, 6))
 
-        self.draw.draw_line(img, IntLocation(row_start), IntLocation(col_pos), IntLocation(row_start),
-                            IntLocation(col_end))
-        self.draw.draw_line(img, IntLocation(row_start), IntLocation(col_end), IntLocation(row_mid),
-                            IntLocation(col_end))
+        width = int(self.draw.seed_rng.uniform(0.25, 0.35) * self.config.width)
+        arch_ry = int(self.draw.seed_rng.uniform(5, 8))
+
+        cx = left_x + width // 2
+        cy = arch_start_y + arch_ry
+
+        arch_angle = int(self.draw.seed_rng.uniform(-25, -15))
+
+        self.draw.draw_ellipse(
+            img, center_x_location=IntLocation(cx), center_y_range=IntLocation(cy),
+            width_location=IntLocation(width // 2), height_location=IntLocation(arch_ry),
+            angle_location=IntLocation(arch_angle), start_angle_location=IntLocation(180),
+            end_angle_location=IntLocation(360)
+        )
+
+        base_y = int(self.draw.seed_rng.uniform(0.65, 0.75) * self.config.height)
+
+        right_x = cx + int((width // 2) * math.cos(math.radians(abs(arch_angle))))
+
+        self.draw.draw_line(
+            img, left_location=IntLocation(right_x), top_location=IntLocation(cy),
+            right_location=IntLocation(right_x - int(tilt / 2)), bottom_location=IntLocation(base_y)
+        )
+
+        tail_len = int(self.draw.seed_rng.uniform(3, 6))
+        self.draw.draw_line(
+            img, left_location=IntLocation(right_x - int(tilt / 2)), top_location=IntLocation(base_y),
+            right_location=IntLocation(right_x - int(tilt / 2) + tail_len), bottom_location=IntLocation(base_y - 2)
+        )
 
         return img
 
     def generate_т(self) -> NDArray[np.uint8]:
         img = self._init_image()
 
-        row_top = int(self.config.height * 0.2)
-        row_bot = int(self.config.height * 0.8)
+        # Идеальная перевернутая "ш" (3 свода)
+        rx = int(self.draw.seed_rng.uniform(0.12, 0.16) * self.config.width)
+        ry = int(self.draw.seed_rng.uniform(0.28, 0.35) * self.config.height)
 
-        col1 = int(self.config.width * 0.2)
-        col2 = int(self.config.width * 0.5)
-        col3 = int(self.config.width * 0.8)
+        # Центр арок поднят выше, так как своды смотрят вверх
+        cy = int(self.draw.seed_rng.uniform(0.45, 0.55) * self.config.height)
 
-        # 1. Крыша (горизонталь)
-        self.draw.draw_line(img, IntLocation(row_top), IntLocation(col1), IntLocation(row_top), IntLocation(col3))
+        cx1 = int(self.draw.seed_rng.uniform(0.25, 0.32) * self.config.width)
+        offset = int(rx * 1.85) + int(self.draw.seed_rng.uniform(-1, 1))
+        cx2 = cx1 + offset
+        cx3 = cx2 + offset
 
-        # 2. Ноги (вертикали)
-        self.draw.draw_line(img, IntLocation(row_top), IntLocation(col1), IntLocation(row_bot), IntLocation(col1))
-        self.draw.draw_line(img, IntLocation(row_top), IntLocation(col2), IntLocation(row_bot), IntLocation(col2))
-        self.draw.draw_line(img, IntLocation(row_top), IntLocation(col3), IntLocation(row_bot), IntLocation(col3))
+        angle = int(self.draw.seed_rng.uniform(5, 15))
+
+        # 1. Первый свод (левый)
+        # Рисуем верхнюю половину эллипса: от 150 (лево-низ) через верх (270) до 30 (право-низ)
+        self.draw.draw_ellipse(
+            img, center_x_location=IntLocation(cx1), center_y_range=IntLocation(cy),
+            width_location=IntLocation(rx), height_location=IntLocation(ry),
+            angle_location=IntLocation(angle), start_angle_location=IntLocation(150),
+            end_angle_location=IntLocation(360 + 30)
+        )
+
+        # 2. Второй свод (центральный)
+        self.draw.draw_ellipse(
+            img, center_x_location=IntLocation(cx2), center_y_range=IntLocation(cy),
+            width_location=IntLocation(rx), height_location=IntLocation(ry),
+            angle_location=IntLocation(angle), start_angle_location=IntLocation(150),
+            end_angle_location=IntLocation(360 + 30)
+        )
 
         return img
-
 
     def generate_с(self) -> NDArray[np.uint8]:
         img = self._init_image()
@@ -1216,13 +1194,468 @@ class LowerCaseLettersGenerator(BaseGenerator):
             end_angle_location=IntLocation(360),
         )
 
-        # 2. Вертикальная мачта (рисуется поверъ овала, разрезая его)
+        # 2. Вертикальная мачта (рисуется поверх овала, разрезая его)
         self.draw.draw_line(
             img,
             left_location=IntLocation(x_mid),
             top_location=IntLocation(top_y),
             right_location=IntLocation(x_mid - dx),
             bottom_location=IntLocation(bot_y),
+        )
+
+        return img
+
+    def generate_х(self) -> NDArray[np.uint8]:
+        img = self._init_image()
+
+        cx = int(self.draw.seed_rng.uniform(0.45, 0.55) * self.config.width)
+        cy = int(self.draw.seed_rng.uniform(0.40, 0.50) * self.config.height)
+
+        # Делаем радиусы шире, чтобы буква была более округлой
+        rx = int(self.draw.seed_rng.uniform(0.14, 0.20) * self.config.width)
+        ry = int(self.draw.seed_rng.uniform(0.20, 0.28) * self.config.height)
+
+        tilt = int(self.draw.seed_rng.uniform(5, 15))
+
+        # Сдвигаем центры ровно на радиус + небольшой зазор,
+        # чтобы они аккуратно касались/чуть-чуть пересекались в самом центре
+        offset = rx + int(self.draw.seed_rng.uniform(0, 2))
+
+        # 1. Левая половинка (дуга, открытая влево)
+        # Углы 70 и 290 заставляют дугу сильнее закругляться к центру
+        self.draw.draw_ellipse(
+            img,
+            center_x_location=IntLocation(cx + offset),
+            center_y_range=IntLocation(cy),
+            width_location=IntLocation(rx),
+            height_location=IntLocation(ry),
+            angle_location=IntLocation(tilt),
+            start_angle_location=IntLocation(70),
+            end_angle_location=IntLocation(290),
+        )
+
+        # 2. Правая половинка (дуга, открытая вправо)
+        self.draw.draw_ellipse(
+            img,
+            center_x_location=IntLocation(cx - offset),
+            center_y_range=IntLocation(cy),
+            width_location=IntLocation(rx),
+            height_location=IntLocation(ry),
+            angle_location=IntLocation(tilt),
+            start_angle_location=IntLocation(-110),
+            end_angle_location=IntLocation(110),
+        )
+
+        return img
+
+    def generate_ц(self) -> NDArray[np.uint8]:
+        img = self._init_image()
+
+        # База "ц" - буква "и"
+        rx = int(self.draw.seed_rng.uniform(0.12, 0.16) * self.config.width)
+        ry = int(self.draw.seed_rng.uniform(0.28, 0.34) * self.config.height)
+        cy = int(self.draw.seed_rng.uniform(0.40, 0.50) * self.config.height)
+
+        cx1 = int(self.draw.seed_rng.uniform(0.25, 0.32) * self.config.width)
+        offset = int(rx * 1.75) + int(self.draw.seed_rng.uniform(0, 1))
+        cx2 = cx1 + offset
+        angle = int(self.draw.seed_rng.uniform(5, 12))
+
+        # 1. Левая половина "и"
+        start_angle_1 = int(self.draw.seed_rng.uniform(-30, -10))
+        end_angle_1 = int(self.draw.seed_rng.uniform(200, 220))
+        self.draw.draw_ellipse(
+            img,
+            center_x_location=IntLocation(cx1),
+            center_y_range=IntLocation(cy),
+            width_location=IntLocation(rx),
+            height_location=IntLocation(ry),
+            angle_location=IntLocation(angle),
+            start_angle_location=IntLocation(start_angle_1),
+            end_angle_location=IntLocation(end_angle_1),
+        )
+
+        # 2. Правая половина
+        # start_angle = 0, чтобы правая линия пошла строго до самого низа без хвостика
+        end_angle_2 = int(self.draw.seed_rng.uniform(190, 210))
+        self.draw.draw_ellipse(
+            img,
+            center_x_location=IntLocation(cx2),
+            center_y_range=IntLocation(cy),
+            width_location=IntLocation(rx),
+            height_location=IntLocation(ry),
+            angle_location=IntLocation(angle),
+            start_angle_location=IntLocation(0),
+            end_angle_location=IntLocation(end_angle_2),
+        )
+
+        # 3. Очень маленький хвостик (как просили)
+        loop_r = int(self.draw.seed_rng.uniform(2, 4))
+        loop_cx = cx2 + rx
+        loop_cy = cy + ry + loop_r - 1
+
+        self.draw.draw_ellipse(
+            img,
+            center_x_location=IntLocation(loop_cx),
+            center_y_range=IntLocation(loop_cy),
+            width_location=IntLocation(loop_r),
+            height_location=IntLocation(int(loop_r * 1.5)),  # Чуть вытянута вниз
+            angle_location=IntLocation(angle),
+            start_angle_location=IntLocation(-90),  # Приклеена к ножке
+            end_angle_location=IntLocation(180),  # Закругляется влево
+        )
+
+        return img
+
+    def generate_ч(self) -> NDArray[np.uint8]:
+        img = self._init_image()
+
+        cup_rx = int(self.draw.seed_rng.uniform(0.12, 0.16) * self.config.width)
+        cup_ry = int(self.draw.seed_rng.uniform(0.12, 0.16) * self.config.height)
+
+        cup_cx = int(self.draw.seed_rng.uniform(0.25, 0.35) * self.config.width)
+        cup_cy = int(self.draw.seed_rng.uniform(0.40, 0.48) * self.config.height)
+
+        # 1. Чашечка (U-форма)
+        self.draw.draw_ellipse(
+            img, center_x_location=IntLocation(cup_cx), center_y_range=IntLocation(cup_cy),
+            width_location=IntLocation(cup_rx), height_location=IntLocation(cup_ry),
+            angle_location=IntLocation(0), start_angle_location=IntLocation(0), end_angle_location=IntLocation(200),
+        )
+
+        # 2. Правая мачта
+        stick_x = cup_cx + cup_rx
+        top_y = cup_cy
+        bot_y = int(self.draw.seed_rng.uniform(0.75, 0.85) * self.config.height)
+
+        self.draw.draw_line(
+            img, left_location=IntLocation(stick_x), top_location=IntLocation(top_y),
+            right_location=IntLocation(stick_x), bottom_location=IntLocation(bot_y),
+        )
+
+        # 3. Финишный хвостик (увеличен, поднят и сдвинут вправо)
+        tail_r = int(self.draw.seed_rng.uniform(5, 8))  # Был 4-7
+        self.draw.draw_ellipse(
+            img, center_x_location=IntLocation(stick_x + tail_r), center_y_range=IntLocation(bot_y - tail_r + 1),
+            width_location=IntLocation(tail_r), height_location=IntLocation(tail_r),
+            angle_location=IntLocation(0), start_angle_location=IntLocation(90), end_angle_location=IntLocation(180),
+        )
+
+        return img
+
+
+    def generate_ш(self) -> NDArray[np.uint8]:
+        img = self._init_image()
+
+        # три раза повторяем геометрию "и"
+        rx = int(self.draw.seed_rng.uniform(0.12, 0.16) * self.config.width)
+        ry = int(self.draw.seed_rng.uniform(0.28, 0.35) * self.config.height)
+        cy = int(self.draw.seed_rng.uniform(0.40, 0.50) * self.config.height)
+
+        cx1 = int(self.draw.seed_rng.uniform(0.18, 0.25) * self.config.width)
+        offset = int(rx * 1.75) + int(self.draw.seed_rng.uniform(0, 1))
+        cx2 = cx1 + offset
+        cx3 = cx2 + offset  # Третья секция
+
+        angle = int(self.draw.seed_rng.uniform(5, 15))
+
+        # 1. Первая ямка
+        self.draw.draw_ellipse(
+            img, center_x_location=IntLocation(cx1), center_y_range=IntLocation(cy),
+            width_location=IntLocation(rx), height_location=IntLocation(ry),
+            angle_location=IntLocation(angle), start_angle_location=IntLocation(-30),
+            end_angle_location=IntLocation(220),
+        )
+
+        # 2. Вторая ямка
+        self.draw.draw_ellipse(
+            img, center_x_location=IntLocation(cx2), center_y_range=IntLocation(cy),
+            width_location=IntLocation(rx), height_location=IntLocation(ry),
+            angle_location=IntLocation(angle), start_angle_location=IntLocation(-30),
+            end_angle_location=IntLocation(210),
+        )
+
+        # 3. Третья ямка (с хвостиком)
+        tail_angle = int(self.draw.seed_rng.uniform(15, 35))
+        self.draw.draw_ellipse(
+            img, center_x_location=IntLocation(cx3), center_y_range=IntLocation(cy),
+            width_location=IntLocation(rx), height_location=IntLocation(ry),
+            angle_location=IntLocation(angle), start_angle_location=IntLocation(tail_angle),
+            end_angle_location=IntLocation(210),
+        )
+
+        return img
+
+    def generate_щ(self) -> NDArray[np.uint8]:
+        img = self._init_image()
+
+        # Точная копия "ш" (3 ямки)
+        rx = int(self.draw.seed_rng.uniform(0.12, 0.16) * self.config.width)
+        ry = int(self.draw.seed_rng.uniform(0.25, 0.32) * self.config.height)
+        cy = int(self.draw.seed_rng.uniform(0.35, 0.45) * self.config.height)
+
+        cx1 = int(self.draw.seed_rng.uniform(0.18, 0.25) * self.config.width)
+        offset = int(rx * 1.75) + int(self.draw.seed_rng.uniform(0, 1))
+        cx2 = cx1 + offset
+        cx3 = cx2 + offset
+
+        angle = int(self.draw.seed_rng.uniform(5, 15))
+
+        self.draw.draw_ellipse(
+            img, center_x_location=IntLocation(cx1), center_y_range=IntLocation(cy),
+            width_location=IntLocation(rx), height_location=IntLocation(ry),
+            angle_location=IntLocation(angle), start_angle_location=IntLocation(-30),
+            end_angle_location=IntLocation(220),
+        )
+
+        self.draw.draw_ellipse(
+            img, center_x_location=IntLocation(cx2), center_y_range=IntLocation(cy),
+            width_location=IntLocation(rx), height_location=IntLocation(ry),
+            angle_location=IntLocation(angle), start_angle_location=IntLocation(-30),
+            end_angle_location=IntLocation(210),
+        )
+
+        # Третья ямка уходит строго вниз (start_angle=0) для присоединения петельки
+        self.draw.draw_ellipse(
+            img, center_x_location=IntLocation(cx3), center_y_range=IntLocation(cy),
+            width_location=IntLocation(rx), height_location=IntLocation(ry),
+            angle_location=IntLocation(angle), start_angle_location=IntLocation(0), end_angle_location=IntLocation(210),
+        )
+
+        # Добавляем маленькую петельку (копия из "ц")
+        loop_r = int(self.draw.seed_rng.uniform(2, 4))
+        loop_cx = cx3 + rx
+        loop_cy = cy + ry + loop_r - 1
+
+        self.draw.draw_ellipse(
+            img, center_x_location=IntLocation(loop_cx), center_y_range=IntLocation(loop_cy),
+            width_location=IntLocation(loop_r), height_location=IntLocation(int(loop_r * 1.5)),
+            angle_location=IntLocation(angle), start_angle_location=IntLocation(-90),
+            end_angle_location=IntLocation(180),
+        )
+
+        return img
+
+    def generate_ъ(self) -> NDArray[np.uint8]:
+        img = self._init_image()
+
+        top_y = int(self.draw.seed_rng.uniform(0.30, 0.40) * self.config.height)
+        bot_y = int(self.draw.seed_rng.uniform(0.70, 0.80) * self.config.height)
+        stick_x = int(self.draw.seed_rng.uniform(0.40, 0.50) * self.config.width)
+
+        # 1. Центральная мачта
+        self.draw.draw_line(
+            img,
+            left_location=IntLocation(stick_x), top_location=IntLocation(top_y),
+            right_location=IntLocation(stick_x), bottom_location=IntLocation(bot_y)
+        )
+
+        # 2. Нижняя петля (справа от мачты)
+        loop_r = int(self.draw.seed_rng.uniform(0.12, 0.16) * self.config.width)
+        self.draw.draw_ellipse(
+            img,
+            center_x_location=IntLocation(stick_x + loop_r), center_y_range=IntLocation(bot_y - loop_r),
+            width_location=IntLocation(loop_r), height_location=IntLocation(int(loop_r * 1.2)),
+            angle_location=IntLocation(0), start_angle_location=IntLocation(0), end_angle_location=IntLocation(360)
+        )
+
+        # 3. Горизонтальный козырек (влево от верха мачты)
+        visor_len = int(self.draw.seed_rng.uniform(0.15, 0.20) * self.config.width)
+        left_visor_x = stick_x - visor_len
+        self.draw.draw_line(
+            img,
+            left_location=IntLocation(left_visor_x), top_location=IntLocation(top_y),
+            right_location=IntLocation(stick_x), bottom_location=IntLocation(top_y)
+        )
+
+        # 4. Хвостик-засечка на козырьке (от -180 (лево) до -90 (верх))
+        hook_r = int(self.draw.seed_rng.uniform(2, 4))
+        self.draw.draw_ellipse(
+            img,
+            center_x_location=IntLocation(left_visor_x + hook_r), center_y_range=IntLocation(top_y + hook_r),
+            width_location=IntLocation(hook_r), height_location=IntLocation(hook_r),
+            angle_location=IntLocation(0), start_angle_location=IntLocation(180), end_angle_location=IntLocation(270)
+        )
+
+        return img
+
+    def generate_ы(self) -> NDArray[np.uint8]:
+        img = self._init_image()
+
+        # Удлинили палки (top_y стал меньше)
+        top_y = int(self.draw.seed_rng.uniform(0.20, 0.30) * self.config.height)
+        bot_y = int(self.draw.seed_rng.uniform(0.75, 0.85) * self.config.height)
+
+        # 1. Левая мачта
+        stick1_x = int(self.draw.seed_rng.uniform(0.20, 0.25) * self.config.width)
+        self.draw.draw_line(
+            img, left_location=IntLocation(stick1_x), top_location=IntLocation(top_y),
+            right_location=IntLocation(stick1_x), bottom_location=IntLocation(bot_y)
+        )
+
+        # 2. Левая петля (увеличен минимальный размер)
+        loop_r = int(self.draw.seed_rng.uniform(0.14, 0.18) * self.config.width)
+        self.draw.draw_ellipse(
+            img, center_x_location=IntLocation(stick1_x + loop_r), center_y_range=IntLocation(bot_y - loop_r),
+            width_location=IntLocation(loop_r), height_location=IntLocation(int(loop_r * 1.2)),
+            angle_location=IntLocation(0), start_angle_location=IntLocation(0), end_angle_location=IntLocation(360)
+        )
+
+        # 3. Правая мачта (увеличен отступ)
+        gap = int(self.draw.seed_rng.uniform(0.10, 0.18) * self.config.width)  # Был 0.05-0.10
+        stick2_x = stick1_x + loop_r * 2 + gap
+        self.draw.draw_line(
+            img, left_location=IntLocation(stick2_x), top_location=IntLocation(top_y),
+            right_location=IntLocation(stick2_x), bottom_location=IntLocation(bot_y)
+        )
+
+        # 4. Правый хвостик
+        tail_r = int(self.draw.seed_rng.uniform(3, 5))
+        self.draw.draw_ellipse(
+            img, center_x_location=IntLocation(stick2_x + tail_r - 1), center_y_range=IntLocation(bot_y - tail_r),
+            width_location=IntLocation(tail_r), height_location=IntLocation(tail_r),
+            angle_location=IntLocation(0), start_angle_location=IntLocation(90), end_angle_location=IntLocation(180)
+        )
+
+        return img
+
+    def generate_ь(self) -> NDArray[np.uint8]:
+        img = self._init_image()
+
+        # Удлинили палку
+        top_y = int(self.draw.seed_rng.uniform(0.20, 0.30) * self.config.height)
+        bot_y = int(self.draw.seed_rng.uniform(0.70, 0.80) * self.config.height)
+        stick_x = int(self.draw.seed_rng.uniform(0.35, 0.45) * self.config.width)
+
+        # 1. Мачта
+        self.draw.draw_line(
+            img, left_location=IntLocation(stick_x), top_location=IntLocation(top_y),
+            right_location=IntLocation(stick_x), bottom_location=IntLocation(bot_y)
+        )
+
+        # 2. Петля
+        loop_r = int(self.draw.seed_rng.uniform(0.12, 0.16) * self.config.width)
+        self.draw.draw_ellipse(
+            img, center_x_location=IntLocation(stick_x + loop_r), center_y_range=IntLocation(bot_y - loop_r),
+            width_location=IntLocation(loop_r), height_location=IntLocation(int(loop_r * 1.2)),
+            angle_location=IntLocation(0), start_angle_location=IntLocation(0), end_angle_location=IntLocation(360)
+        )
+
+        return img
+
+    def generate_э(self) -> NDArray[np.uint8]:
+        img = self._init_image()
+
+        cx = int(self.draw.seed_rng.uniform(0.50, 0.60) * self.config.width)
+        cy = int(self.draw.seed_rng.uniform(0.45, 0.55) * self.config.height)
+
+        # Делаем эллипс более вытянутым по вертикали (как "С")
+        rx = int(self.draw.seed_rng.uniform(0.12, 0.16) * self.config.width)
+        ry = int(self.draw.seed_rng.uniform(0.24, 0.30) * self.config.height)
+
+        # 1. Полукруг (усилено закругление: от -120 до 120)
+        self.draw.draw_ellipse(
+            img, center_x_location=IntLocation(cx), center_y_range=IntLocation(cy),
+            width_location=IntLocation(rx), height_location=IntLocation(ry),
+            angle_location=IntLocation(0), start_angle_location=IntLocation(-120), end_angle_location=IntLocation(120)
+        )
+
+        # 2. Горизонтальная перекладина (удлинена и сдвинута вправо, чтобы проткнуть дугу)
+        bar_len = int(self.draw.seed_rng.uniform(0.18, 0.24) * self.config.width)
+        # Начинается левее, а заканчивается немного ПРАВЕЕ центра дуги (cx)
+        self.draw.draw_line(
+            img, left_location=IntLocation(cx - bar_len), top_location=IntLocation(cy),
+            right_location=IntLocation(cx + int(rx * 0.5)), bottom_location=IntLocation(cy)
+        )
+
+        return img
+
+    def generate_ю(self) -> NDArray[np.uint8]:
+        img = self._init_image()
+
+        # Наклон менее агрессивный
+        tilt = int(self.draw.seed_rng.uniform(1, 3))
+
+        # 1. Левая мачта
+        x1_top = int(self.draw.seed_rng.uniform(0.20, 0.28) * self.config.width)
+        y1_top = int(self.draw.seed_rng.uniform(0.25, 0.35) * self.config.height)
+        x1_bot = x1_top - tilt
+        y1_bot = int(self.draw.seed_rng.uniform(0.70, 0.80) * self.config.height)
+
+        self.draw.draw_line(
+            img, left_location=IntLocation(x1_bot), top_location=IntLocation(y1_bot),
+            right_location=IntLocation(x1_top), bottom_location=IntLocation(y1_top)
+        )
+
+        # 2. Горизонтальная перемычка
+        y_mid = (y1_top + y1_bot) // 2
+        x_mid = (x1_top + x1_bot) // 2
+
+        rx = int(self.draw.seed_rng.uniform(0.12, 0.16) * self.config.width)
+        ry = int(self.draw.seed_rng.uniform(0.18, 0.24) * self.config.height)
+
+        bridge_len = int(self.draw.seed_rng.uniform(0.18, 0.24) * self.config.width)
+        x_bridge_end = x_mid + bridge_len
+
+        self.draw.draw_line(
+            img, left_location=IntLocation(x_mid), top_location=IntLocation(y_mid),
+            right_location=IntLocation(x_bridge_end), bottom_location=IntLocation(y_mid)
+        )
+
+        # 3. Овал
+        cx = x_bridge_end + rx
+        cy = y_mid
+
+        self.draw.draw_ellipse(
+            img, center_x_location=IntLocation(cx), center_y_range=IntLocation(cy),
+            width_location=IntLocation(rx), height_location=IntLocation(ry),
+            angle_location=IntLocation(tilt), start_angle_location=IntLocation(0), end_angle_location=IntLocation(360)
+        )
+
+        return img
+
+    def generate_я(self) -> NDArray[np.uint8]:
+        img = self._init_image()
+
+        top_y = int(self.draw.seed_rng.uniform(0.25, 0.35) * self.config.height)
+        bot_y = int(self.draw.seed_rng.uniform(0.75, 0.85) * self.config.height)
+
+        # 1. Правая мачта (опускается до самого низа)
+        stick_x = int(self.draw.seed_rng.uniform(0.65, 0.75) * self.config.width)
+        self.draw.draw_line(
+            img, left_location=IntLocation(stick_x), top_location=IntLocation(top_y),
+            right_location=IntLocation(stick_x), bottom_location=IntLocation(bot_y)
+        )
+
+        # 2. Верхняя левая петля
+        loop_r = int(self.draw.seed_rng.uniform(0.12, 0.16) * self.config.width)
+        loop_cy = top_y + loop_r
+        loop_cx = stick_x - loop_r
+
+        self.draw.draw_ellipse(
+            img, center_x_location=IntLocation(loop_cx), center_y_range=IntLocation(loop_cy),
+            width_location=IntLocation(loop_r), height_location=IntLocation(loop_r),
+            angle_location=IntLocation(0), start_angle_location=IntLocation(0), end_angle_location=IntLocation(360)
+        )
+
+        # 3. Диагональная ножка (ограничиваем минимальный угол, чтобы была круче)
+        leg_start_x = stick_x
+        leg_start_y = loop_cy + loop_r
+
+        # Ножка не может уходить слишком далеко влево (крутой наклон)
+        leg_end_x = int(self.draw.seed_rng.uniform(0.35, 0.45) * self.config.width)
+
+        self.draw.draw_line(
+            img, left_location=IntLocation(leg_end_x), top_location=IntLocation(bot_y),
+            right_location=IntLocation(leg_start_x), bottom_location=IntLocation(leg_start_y)
+        )
+
+        # 4. Финишный хвостик от правой мачты
+        tail_r = int(self.draw.seed_rng.uniform(3, 5))
+        self.draw.draw_ellipse(
+            img, center_x_location=IntLocation(stick_x + tail_r - 1), center_y_range=IntLocation(bot_y - tail_r),
+            width_location=IntLocation(tail_r), height_location=IntLocation(tail_r),
+            angle_location=IntLocation(0), start_angle_location=IntLocation(90), end_angle_location=IntLocation(180)
         )
 
         return img
