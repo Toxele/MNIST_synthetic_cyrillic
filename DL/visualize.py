@@ -7,10 +7,14 @@ from sklearn.metrics import confusion_matrix
 from DL.gradcam_utils import GradCAM
 
 
-def apply_gradcam(model: torch.nn.Module, image_tensor: torch.Tensor, device: torch.device) -> torch.Tensor:
-    target_layer = model.feature_extractor[-2]
+def apply_gradcam(model: torch.nn.Module, image_tensor: torch.Tensor, device: torch.device,
+                  layer_idx: int) -> torch.Tensor:
+    target_layer = model.feature_extractor[layer_idx]
     cam = GradCAM(model=model, target_layer=target_layer)
     heatmap = cam(image_tensor.unsqueeze(0).to(device))
+
+    # Удаляем хуки, чтобы не засорять модель
+    cam.remove_hooks()
     return heatmap
 
 
@@ -48,8 +52,8 @@ def visualize_all_classes_gradcam(model_base: torch.nn.Module, model_bg: torch.n
 
         char_name = dataset.idx_to_char[label_idx]
 
-        hm_base = apply_gradcam(model_base, img_tensor, device)
-        hm_bg = apply_gradcam(model_bg, img_tensor, device)
+        hm_base = apply_gradcam(model_base, img_tensor, device, layer_idx=2)
+        hm_bg = apply_gradcam(model_bg, img_tensor, device, layer_idx=2)
 
         axes[row, col_offset].imshow(img_tensor.squeeze(), cmap='gray')
         axes[row, col_offset].set_title(f"Символ: '{char_name}'")
@@ -161,7 +165,7 @@ def visualize_failure_cases(model: torch.nn.Module, dataloader, dataset, device:
         true_char = dataset.idx_to_char[true_idx]
         pred_char = dataset.idx_to_char[pred_idx]
 
-        hm = apply_gradcam(model, img_tensor, device)
+        hm = apply_gradcam(model, img_tensor, device, layer_idx=2)
 
         axes[idx][0].imshow(img_tensor.squeeze(), cmap='gray')
         axes[idx][0].set_title(f"Истина: {true_char}")
@@ -171,6 +175,72 @@ def visualize_failure_cases(model: torch.nn.Module, dataloader, dataset, device:
         axes[idx][1].imshow(hm, cmap='jet', alpha=0.5)
         axes[idx][1].set_title(f"Предсказано: {pred_char} (Grad-CAM)")
         axes[idx][1].axis('off')
+
+    plt.tight_layout()
+    plt.show()
+
+
+def visualize_multilayer_gradcam(model_base: torch.nn.Module, model_bg: torch.nn.Module, dataset, device: torch.device,
+                                 num_samples: int = 6):
+    """
+    Визуализирует работу Grad-CAM на разных слоях сети.
+    В LeNet_4KB:
+    layer_idx = 0 (Conv1 - низкоуровневые признаки)
+    layer_idx = 2 (Conv2 - высокоуровневые паттерны)
+    """
+    class_samples = {}
+    for img, lbl in dataset:
+        if lbl not in class_samples:
+            class_samples[lbl] = img
+        if len(class_samples) == num_samples:
+            break
+
+    fig, axes = plt.subplots(num_samples, 5, figsize=(18, num_samples * 3.5))
+    if num_samples == 1:
+        axes = [axes]
+
+    for row, (label_idx, img_tensor) in enumerate(class_samples.items()):
+        char_name = dataset.idx_to_char[label_idx]
+
+        # Получаем тепловые карты для первого слоя (Conv1)
+        hm_base_l1 = apply_gradcam(model_base, img_tensor, device, layer_idx=0)
+        hm_bg_l1 = apply_gradcam(model_bg, img_tensor, device, layer_idx=0)
+
+        # Получаем тепловые карты для второго слоя (Conv2)
+        hm_base_l2 = apply_gradcam(model_base, img_tensor, device, layer_idx=2)
+        hm_bg_l2 = apply_gradcam(model_bg, img_tensor, device, layer_idx=2)
+
+        # 0. Оригинал
+        axes[row, 0].imshow(img_tensor.squeeze(), cmap='gray')
+        axes[row, 0].set_title(f"Оригинал: '{char_name}'")
+        axes[row, 0].axis('off')
+
+        # 1. Base Layer 1
+        axes[row, 1].imshow(img_tensor.squeeze(), cmap='gray')
+        axes[row, 1].imshow(hm_base_l1, cmap='jet', alpha=0.5, vmin=0, vmax=1)
+        axes[row, 2].imshow(hm_base_l2, cmap='jet', alpha=0.5, vmin=0, vmax=1)
+        axes[row, 3].imshow(hm_bg_l1, cmap='jet', alpha=0.5, vmin=0, vmax=1)
+        axes[row, 4].imshow(hm_bg_l2, cmap='jet', alpha=0.5, vmin=0, vmax=1)
+        axes[row, 1].set_title("Base Conv1 (Локальные)")
+        axes[row, 1].axis('off')
+
+        # 2. Base Layer 2
+        axes[row, 2].imshow(img_tensor.squeeze(), cmap='gray')
+        axes[row, 2].imshow(hm_base_l2, cmap='jet', alpha=0.5)
+        axes[row, 2].set_title("Base Conv2 (Паттерны)")
+        axes[row, 2].axis('off')
+
+        # 3. BG Layer 1
+        axes[row, 3].imshow(img_tensor.squeeze(), cmap='gray')
+        axes[row, 3].imshow(hm_bg_l1, cmap='jet', alpha=0.5)
+        axes[row, 3].set_title("BG Loss Conv1 (Локальные)")
+        axes[row, 3].axis('off')
+
+        # 4. BG Layer 2
+        axes[row, 4].imshow(img_tensor.squeeze(), cmap='gray')
+        axes[row, 4].imshow(hm_bg_l2, cmap='jet', alpha=0.5)
+        axes[row, 4].set_title("BG Loss Conv2 (Паттерны)")
+        axes[row, 4].axis('off')
 
     plt.tight_layout()
     plt.show()

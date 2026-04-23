@@ -11,8 +11,11 @@ class GradCAM:
         self.gradients = None
         self.activations = None
 
-        self.target_layer.register_forward_hook(self.save_activation)
-        self.target_layer.register_full_backward_hook(self.save_gradient)
+        # Сохраняем ссылки на хуки, чтобы потом их удалить
+        self.hook_handles = []
+
+        self.hook_handles.append(self.target_layer.register_forward_hook(self.save_activation))
+        self.hook_handles.append(self.target_layer.register_full_backward_hook(self.save_gradient))
 
     def save_activation(self, module, input, output):
         self.activations = output
@@ -20,10 +23,14 @@ class GradCAM:
     def save_gradient(self, module, grad_input, grad_output):
         self.gradients = grad_output[0]
 
+    def remove_hooks(self):
+        """Важно вызывать эту функцию после получения тепловой карты"""
+        for handle in self.hook_handles:
+            handle.remove()
+
     def __call__(self, x: torch.Tensor, target_class: int = None) -> np.ndarray:
         self.model.eval()
 
-        # Получаем предсказания модели (нужно использовать return_extra=False для совместимости)
         if 'return_extra' in self.model.forward.__code__.co_varnames:
             output = self.model(x, return_extra=False)
         else:
@@ -36,10 +43,8 @@ class GradCAM:
         class_loss = output[0, target_class]
         class_loss.backward()
 
-        # Global average pooling градиентов
         pooled_gradients = torch.mean(self.gradients, dim=[0, 2, 3])
 
-        # Взвешивание активаций
         activations = self.activations[0].detach()
         for i in range(activations.size(0)):
             activations[i] *= pooled_gradients[i]
@@ -47,14 +52,13 @@ class GradCAM:
         heatmap = torch.mean(activations, dim=0).cpu().numpy()
         heatmap = np.maximum(heatmap, 0)
 
-        # фоллбэк (не помогло): Если градиенты обнулили карту (черный экран),
-        # берем просто среднюю карту активаций (куда реально смотрят фильтры)
         if np.max(heatmap) == 0:
             raw_activations = self.activations[0].detach()
             heatmap = torch.mean(raw_activations, dim=0).cpu().numpy()
             heatmap = np.maximum(heatmap, 0)
             if np.max(heatmap) == 0:
-                return heatmap  # Если и тут нули, сеть выдала абсолютно пустой тензор
+                heatmap = cv2.resize(heatmap, (x.size(-1), x.size(-2)))
+                return heatmap
 
         heatmap /= np.max(heatmap)
         heatmap = cv2.resize(heatmap, (x.size(-1), x.size(-2)))
