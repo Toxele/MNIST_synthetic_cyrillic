@@ -62,6 +62,7 @@ class ModelTrainer:
                 loss = self.criterion(outputs, labels)
 
             loss.backward()
+            torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=2.0)
             self.optimizer.step()
 
             running_loss += loss.item() * images.size(0)

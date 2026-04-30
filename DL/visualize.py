@@ -1,10 +1,13 @@
+import numpy as np
 import math
 import matplotlib.pyplot as plt
 import seaborn as sns
 import torch
+import cv2
 from sklearn.metrics import confusion_matrix
+from scipy.ndimage import zoom
 
-from DL.gradcam_utils import GradCAM
+from DL.gradcam_utils import GradCAM, OverlayGradCAM
 
 
 def apply_gradcam(model: torch.nn.Module, image_tensor: torch.Tensor, device: torch.device,
@@ -184,9 +187,7 @@ def visualize_multilayer_gradcam(model_base: torch.nn.Module, model_bg: torch.nn
                                  num_samples: int = 6):
     """
     Визуализирует работу Grad-CAM на разных слоях сети.
-    В LeNet_4KB:
-    layer_idx = 0 (Conv1 - низкоуровневые признаки)
-    layer_idx = 2 (Conv2 - высокоуровневые паттерны)
+    Автоматически адаптируется под глубину модели (1 или 2 сверточных слоя).
     """
     class_samples = {}
     for img, lbl in dataset:
@@ -199,48 +200,121 @@ def visualize_multilayer_gradcam(model_base: torch.nn.Module, model_bg: torch.nn
     if num_samples == 1:
         axes = [axes]
 
+    # Проверяем, есть ли в модели второй сверточный слой (индекс 2)
+    has_two_layers = len(model_base.feature_extractor) > 2
+
     for row, (label_idx, img_tensor) in enumerate(class_samples.items()):
         char_name = dataset.idx_to_char[label_idx]
 
-        # Получаем тепловые карты для первого слоя (Conv1)
+        # Слой 1 всегда есть (index 0)
         hm_base_l1 = apply_gradcam(model_base, img_tensor, device, layer_idx=0)
         hm_bg_l1 = apply_gradcam(model_bg, img_tensor, device, layer_idx=0)
 
-        # Получаем тепловые карты для второго слоя (Conv2)
-        hm_base_l2 = apply_gradcam(model_base, img_tensor, device, layer_idx=2)
-        hm_bg_l2 = apply_gradcam(model_bg, img_tensor, device, layer_idx=2)
+        if has_two_layers:
+            hm_base_l2 = apply_gradcam(model_base, img_tensor, device, layer_idx=2)
+            hm_bg_l2 = apply_gradcam(model_bg, img_tensor, device, layer_idx=2)
 
         # 0. Оригинал
         axes[row, 0].imshow(img_tensor.squeeze(), cmap='gray')
         axes[row, 0].set_title(f"Оригинал: '{char_name}'")
         axes[row, 0].axis('off')
 
-        # 1. Base Layer 1
+        # 1. Base Conv1
         axes[row, 1].imshow(img_tensor.squeeze(), cmap='gray')
         axes[row, 1].imshow(hm_base_l1, cmap='jet', alpha=0.5, vmin=0, vmax=1)
-        axes[row, 2].imshow(hm_base_l2, cmap='jet', alpha=0.5, vmin=0, vmax=1)
-        axes[row, 3].imshow(hm_bg_l1, cmap='jet', alpha=0.5, vmin=0, vmax=1)
-        axes[row, 4].imshow(hm_bg_l2, cmap='jet', alpha=0.5, vmin=0, vmax=1)
         axes[row, 1].set_title("Base Conv1 (Локальные)")
         axes[row, 1].axis('off')
 
-        # 2. Base Layer 2
-        axes[row, 2].imshow(img_tensor.squeeze(), cmap='gray')
-        axes[row, 2].imshow(hm_base_l2, cmap='jet', alpha=0.5)
-        axes[row, 2].set_title("Base Conv2 (Паттерны)")
+        # 2. Base Conv2 (если есть)
+        if has_two_layers:
+            axes[row, 2].imshow(img_tensor.squeeze(), cmap='gray')
+            axes[row, 2].imshow(hm_base_l2, cmap='jet', alpha=0.5, vmin=0, vmax=1)
+            axes[row, 2].set_title("Base Conv2 (Паттерны)")
+        else:
+            axes[row, 2].text(0.5, 0.5, 'Слой отсутствует\n(2KB Модель)',
+                              ha='center', va='center', fontsize=12)
         axes[row, 2].axis('off')
 
-        # 3. BG Layer 1
+        # 3. BG Loss Conv1
         axes[row, 3].imshow(img_tensor.squeeze(), cmap='gray')
-        axes[row, 3].imshow(hm_bg_l1, cmap='jet', alpha=0.5)
+        axes[row, 3].imshow(hm_bg_l1, cmap='jet', alpha=0.5, vmin=0, vmax=1)
         axes[row, 3].set_title("BG Loss Conv1 (Локальные)")
         axes[row, 3].axis('off')
 
-        # 4. BG Layer 2
-        axes[row, 4].imshow(img_tensor.squeeze(), cmap='gray')
-        axes[row, 4].imshow(hm_bg_l2, cmap='jet', alpha=0.5)
-        axes[row, 4].set_title("BG Loss Conv2 (Паттерны)")
+        # 4. BG Loss Conv2 (если есть)
+        if has_two_layers:
+            axes[row, 4].imshow(img_tensor.squeeze(), cmap='gray')
+            axes[row, 4].imshow(hm_bg_l2, cmap='jet', alpha=0.5, vmin=0, vmax=1)
+            axes[row, 4].set_title("BG Loss Conv2 (Паттерны)")
+        else:
+            axes[row, 4].text(0.5, 0.5, 'Слой отсутствует\n(2KB Модель)',
+                              ha='center', va='center', fontsize=12)
         axes[row, 4].axis('off')
+
+    plt.tight_layout()
+    plt.show()
+
+
+def visualize_overlay_gradcam(model: torch.nn.Module, dataset, device: torch.device, title: str):
+    """
+    Визуализация Grad-CAM методом "наложения" (overlay) с использованием cv2.addWeighted.
+    Показывает один пример для каждого класса.
+    """
+    model.eval()
+    samples_per_class = {}
+    num_classes = len(dataset.char_to_idx)
+
+    for img, label_idx in dataset:
+        if label_idx not in samples_per_class:
+            samples_per_class[label_idx] = img.unsqueeze(0).to(device)
+        if len(samples_per_class) == num_classes:
+            break
+
+    # Динамически берем последний сверточный блок (Conv2d)
+    target_layer = model.feature_extractor[-2].block[0]
+    grad_cam = OverlayGradCAM(model, target_layer)
+
+    cols = 8
+    rows = (num_classes + cols - 1) // cols
+    fig, axes = plt.subplots(rows, cols, figsize=(cols * 2.5, rows * 2.5))
+    axes = axes.flatten()
+
+    for class_idx in range(num_classes):
+        if class_idx in samples_per_class:
+            img_tensor = samples_per_class[class_idx]
+            cam, pred_class = grad_cam.generate_cam(img_tensor)
+            img = img_tensor.cpu().detach().numpy()[0, 0]
+
+            # Избегаем деления на ноль, если размерности нулевые
+            if cam.shape[0] > 0 and cam.shape[1] > 0:
+                cam_resized = zoom(cam, (28 / cam.shape[0], 28 / cam.shape[1]))
+            else:
+                cam_resized = np.zeros((28, 28))
+
+            cam_colored = cv2.applyColorMap((cam_resized * 255).astype(np.uint8), cv2.COLORMAP_JET)
+            cam_colored = cv2.cvtColor(cam_colored, cv2.COLOR_BGR2RGB)
+
+            overlay = cv2.addWeighted((img * 255).astype(np.uint8)[:, :, np.newaxis].repeat(3, axis=2), 0.5,
+                                      cam_colored, 0.5, 0)
+
+            true_char = dataset.idx_to_char[class_idx]
+            pred_char = dataset.idx_to_char[pred_class]
+
+            ax = axes[class_idx]
+            ax.imshow(overlay)
+
+            title_color = 'white' if true_char == pred_char else 'red'
+            ax.set_title(f"{true_char} (Pred: {pred_char})", fontsize=12, color=title_color)
+            ax.axis('off')
+
+    for idx in range(num_classes, len(axes)):
+        axes[idx].axis('off')
+
+    grad_cam.remove_hooks()
+    plt.suptitle(title, fontsize=16, color='white', y=1.02)
+
+    # Настраиваем цвет фона для фигуры, чтобы текст был читаем
+    fig.patch.set_facecolor('black')
 
     plt.tight_layout()
     plt.show()
