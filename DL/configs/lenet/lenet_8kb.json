@@ -1,0 +1,33 @@
+{
+  "image_size": 28,
+  "in_channels": 1,
+  "num_classes": 33,
+  "layers":[
+    {
+      "type": "conv",
+      "in": 1,
+      "out": 4,
+      "kernel_size": 5,
+      "padding": 0
+    },
+    {
+      "type": "pool",
+      "kernel_size": 2,
+      "stride": 2,
+      "padding": 0
+    },
+    {
+      "type": "conv",
+      "in": 4,
+      "out": 4,
+      "kernel_size": 5,
+      "padding": 0
+    },
+    {
+      "type": "pool",
+      "kernel_size": 2,
+      "stride": 2,
+      "padding": 0
+    }
+  ]
+}

@@ -7,7 +7,7 @@ import cv2
 from sklearn.metrics import confusion_matrix
 from scipy.ndimage import zoom
 
-from DL.gradcam_utils import GradCAM, OverlayGradCAM
+from DL.historical_trash.gradcam_utils import GradCAM, OverlayGradCAM
 
 
 def apply_gradcam(model: torch.nn.Module, image_tensor: torch.Tensor, device: torch.device,
