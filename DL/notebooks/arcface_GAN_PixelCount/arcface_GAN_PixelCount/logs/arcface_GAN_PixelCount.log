@@ -1,0 +1,46 @@
+2026-05-07 23:18:52,242 - === Запуск гипотезы: Hypothesis_PixelCount ===
+2026-05-07 23:19:12,160 - === Запуск гипотезы: Hypothesis_PixelCount ===
+2026-05-07 23:20:01,537 - === Запуск гипотезы: Hypothesis_PixelCount ===
+2026-05-07 23:21:14,962 - Epoch 1/15 [73.3s] - Train Loss: 2.9070, Acc: 0.2683, BG: 0.0354 | Val Loss: 2.2307, Acc: 0.4367
+2026-05-07 23:22:26,373 - Epoch 2/15 [70.9s] - Train Loss: 1.8094, Acc: 0.5565, BG: 0.0302 | Val Loss: 1.4798, Acc: 0.6404
+2026-05-07 23:23:37,024 - Epoch 3/15 [70.1s] - Train Loss: 1.3038, Acc: 0.6845, BG: 0.0258 | Val Loss: 1.1544, Acc: 0.7207
+2026-05-07 23:24:48,265 - Epoch 4/15 [70.7s] - Train Loss: 1.0572, Acc: 0.7392, BG: 0.0227 | Val Loss: 0.9656, Acc: 0.7603
+2026-05-07 23:25:58,820 - Epoch 5/15 [70.0s] - Train Loss: 0.9057, Acc: 0.7697, BG: 0.0200 | Val Loss: 0.8464, Acc: 0.7900
+2026-05-07 23:27:07,698 - Epoch 6/15 [68.3s] - Train Loss: 0.8082, Acc: 0.7954, BG: 0.0178 | Val Loss: 0.7742, Acc: 0.7992
+2026-05-07 23:28:18,510 - Epoch 7/15 [70.3s] - Train Loss: 0.7385, Acc: 0.8094, BG: 0.0157 | Val Loss: 0.6968, Acc: 0.8202
+2026-05-07 23:29:29,149 - Epoch 8/15 [70.2s] - Train Loss: 0.6840, Acc: 0.8225, BG: 0.0138 | Val Loss: 0.6550, Acc: 0.8301
+2026-05-07 23:30:39,297 - Epoch 9/15 [69.6s] - Train Loss: 0.6433, Acc: 0.8306, BG: 0.0124 | Val Loss: 0.6210, Acc: 0.8366
+2026-05-07 23:31:49,267 - Epoch 10/15 [69.5s] - Train Loss: 0.6080, Acc: 0.8390, BG: 0.0115 | Val Loss: 0.5726, Acc: 0.8483
+2026-05-07 23:32:58,651 - Epoch 11/15 [68.9s] - Train Loss: 0.5716, Acc: 0.8474, BG: 0.0103 | Val Loss: 0.5534, Acc: 0.8527
+2026-05-07 23:34:08,496 - Epoch 12/15 [69.4s] - Train Loss: 0.5479, Acc: 0.8526, BG: 0.0095 | Val Loss: 0.5321, Acc: 0.8563
+2026-05-07 23:35:17,334 - Epoch 13/15 [68.3s] - Train Loss: 0.5204, Acc: 0.8592, BG: 0.0084 | Val Loss: 0.5211, Acc: 0.8573
+2026-05-07 23:36:26,651 - Epoch 14/15 [68.8s] - Train Loss: 0.5192, Acc: 0.8596, BG: 0.0066 | Val Loss: 0.4955, Acc: 0.8632
+2026-05-07 23:37:37,070 - Epoch 15/15 [69.9s] - Train Loss: 0.4879, Acc: 0.8670, BG: 0.0059 | Val Loss: 0.4980, Acc: 0.8636
+2026-05-07 23:38:07,709 - === Запуск гипотезы: Hypothesis_ArcFace ===
+2026-05-07 23:39:17,164 - Epoch 1/15 [69.4s] - Train Loss: 7.3696, Acc: 0.0008, BG: 0.1200 | Val Loss: 2.1687, Acc: 0.4077
+2026-05-07 23:40:26,584 - Epoch 2/15 [68.9s] - Train Loss: 5.7575, Acc: 0.0264, BG: 0.0194 | Val Loss: 1.6249, Acc: 0.5684
+2026-05-07 23:41:37,952 - Epoch 3/15 [70.9s] - Train Loss: 4.9868, Acc: 0.0821, BG: 0.0135 | Val Loss: 1.3362, Acc: 0.6491
+2026-05-07 23:42:47,612 - Epoch 4/15 [69.1s] - Train Loss: 4.4440, Acc: 0.1368, BG: 0.0080 | Val Loss: 1.1131, Acc: 0.7118
+2026-05-07 23:43:56,433 - Epoch 5/15 [68.3s] - Train Loss: 4.0494, Acc: 0.1725, BG: 0.0046 | Val Loss: 1.0030, Acc: 0.7351
+2026-05-07 23:45:05,920 - Epoch 6/15 [69.0s] - Train Loss: 3.7346, Acc: 0.2032, BG: 0.0025 | Val Loss: 0.9037, Acc: 0.7614
+2026-05-07 23:46:15,459 - Epoch 7/15 [69.0s] - Train Loss: 3.5197, Acc: 0.2279, BG: 0.0013 | Val Loss: 0.8547, Acc: 0.7741
+2026-05-07 23:47:24,942 - Epoch 8/15 [68.9s] - Train Loss: 3.3477, Acc: 0.2475, BG: 0.0013 | Val Loss: 0.8031, Acc: 0.7901
+2026-05-07 23:48:34,522 - Epoch 9/15 [69.0s] - Train Loss: 3.2191, Acc: 0.2649, BG: 0.0022 | Val Loss: 0.7903, Acc: 0.7892
+2026-05-07 23:49:43,797 - Epoch 10/15 [68.7s] - Train Loss: 3.1454, Acc: 0.2762, BG: 0.0027 | Val Loss: 0.7559, Acc: 0.7964
+2026-05-07 23:50:52,225 - Epoch 11/15 [67.8s] - Train Loss: 3.1063, Acc: 0.2826, BG: 0.0030 | Val Loss: 0.7585, Acc: 0.7970
+2026-05-07 23:52:00,672 - Epoch 12/15 [67.9s] - Train Loss: 3.0721, Acc: 0.2862, BG: 0.0032 | Val Loss: 0.7509, Acc: 0.7986
+2026-05-07 23:53:09,980 - Epoch 13/15 [68.8s] - Train Loss: 3.0391, Acc: 0.2875, BG: 0.0034 | Val Loss: 0.7358, Acc: 0.8065
+2026-05-07 23:54:19,253 - Epoch 14/15 [68.7s] - Train Loss: 3.0162, Acc: 0.2920, BG: 0.0034 | Val Loss: 0.7292, Acc: 0.8028
+2026-05-07 23:55:28,655 - Epoch 15/15 [68.9s] - Train Loss: 3.0006, Acc: 0.2954, BG: 0.0035 | Val Loss: 0.7451, Acc: 0.8027
+2026-05-07 23:55:58,782 - === Запуск гипотезы: Hypothesis_LatentGAN ===
+2026-05-07 23:57:13,038 - Epoch 1/15 [74.2s] - Train Loss: 3.0304, Acc: 0.2456, BG: 0.0274 | Val Loss: 2.4437, Acc: 0.3998
+2026-05-07 23:58:27,834 - Epoch 2/15 [74.3s] - Train Loss: 2.1197, Acc: 0.4980, BG: 0.0209 | Val Loss: 1.8977, Acc: 0.5646
+2026-05-07 23:59:42,718 - Epoch 3/15 [74.4s] - Train Loss: 1.8440, Acc: 0.5898, BG: 0.0130 | Val Loss: nan, Acc: 0.6070
+2026-05-08 00:00:58,109 - Epoch 4/15 [74.8s] - Train Loss: 1.7467, Acc: 0.6240, BG: 0.0096 | Val Loss: 1.6584, Acc: 0.6413
+2026-05-08 00:02:12,902 - Epoch 5/15 [74.1s] - Train Loss: 1.5640, Acc: 0.6636, BG: 0.0087 | Val Loss: 1.4720, Acc: 0.6830
+2026-05-08 00:03:29,136 - Epoch 6/15 [75.7s] - Train Loss: nan, Acc: 0.5992, BG: nan | Val Loss: nan, Acc: 0.0141
+2026-05-08 00:04:44,503 - Epoch 7/15 [74.8s] - Train Loss: nan, Acc: 0.0146, BG: nan | Val Loss: nan, Acc: 0.0166
+2026-05-08 00:06:00,628 - Epoch 8/15 [75.5s] - Train Loss: nan, Acc: 0.0156, BG: nan | Val Loss: nan, Acc: 0.0150
+2026-05-08 00:07:17,128 - Epoch 9/15 [75.9s] - Train Loss: nan, Acc: 0.0153, BG: nan | Val Loss: nan, Acc: 0.0143
+2026-05-08 00:08:35,411 - Epoch 10/15 [77.7s] - Train Loss: nan, Acc: 0.0144, BG: nan | Val Loss: nan, Acc: 0.0156
+2026-05-08 00:09:52,100 - Epoch 11/15 [76.0s] - Train Loss: nan, Acc: 0.0144, BG: nan | Val Loss: nan, Acc: 0.0147
